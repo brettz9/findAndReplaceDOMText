@@ -474,6 +474,11 @@ window.findAndReplaceDOMText = (function() {'use strict';
 			var innerNodes = [];
 
 			var i, l, portion, innerNode;
+			function getReplacer (portion, innerNode) {
+				return function() {
+					innerNode.parentNode.replaceChild(portion.node, innerNode);
+				};
+			}
 			for (i = 0, l = innerPortions.length; i < l; ++i) {
 				portion = innerPortions[i];
 				innerNode = this.getPortionReplacementNode(
@@ -481,11 +486,7 @@ window.findAndReplaceDOMText = (function() {'use strict';
 					match
 				);
 				portion.node.parentNode.replaceChild(innerNode, portion.node);
-				this.reverts.push((function(portion, innerNode) {
-					return function() {
-						innerNode.parentNode.replaceChild(portion.node, innerNode);
-					};
-				}(portion, innerNode)));
+				this.reverts.push(getReplacer(portion, innerNode));
 				innerNodes.push(innerNode);
 			}
 
