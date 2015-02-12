@@ -121,7 +121,7 @@ window.findAndReplaceDOMText = (function() {'use strict';
 	Finder.prototype = {
 
 		/**
-		 * Searches for all matches that comply with the instance's 'match' option
+		 * Searches for all matches that comply with the instance's 'find' option
 		 */
 		search: function() {
 
