@@ -105,7 +105,7 @@ window.findAndReplaceDOMText = (function() {'use strict';
 		this.node = node;
 		this.options = options;
 
-		// ENable match-preparation method to be passed as option:
+		// Enable match-preparation method to be passed as option:
 		this.prepMatch = options.prepMatch || this.prepMatch;
 
 		this.reverts = [];
@@ -330,7 +330,7 @@ window.findAndReplaceDOMText = (function() {'use strict';
 			this.reverts = [];
 		},
 
-		prepareReplacementString: function(string, portion, match, matchIndex) {
+		prepareReplacementString: function(string, portion, match/*, matchIndex*/) {
 			var portionMode = this.options.portionMode;
 			if (
 				portionMode === PORTION_MODE_FIRST &&
