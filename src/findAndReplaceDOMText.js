@@ -1,3 +1,5 @@
+/*global XMLSerializer*/
+/*jslint vars:true, continue:true */
 /**
  * findAndReplaceDOMText v 0.4.2
  * @author James Padolsey http://james.padolsey.com
@@ -7,20 +9,16 @@
  * and replaces each match (or node-separated portions of the match)
  * in the specified element.
  */
-window.findAndReplaceDOMText = (function() {
+window.findAndReplaceDOMText = (function() {'use strict';
 
+	var deprecated, findAndReplaceDOMText, Finder;
 	var PORTION_MODE_RETAIN = 'retain';
 	var PORTION_MODE_FIRST = 'first';
 
 	var doc = document;
-	var toString = {}.toString;
-
-	function isArray(a) {
-		return toString.call(a) == '[object Array]';
-	}
 
 	function escapeRegExp(s) {
-		return String(s).replace(/([.*+?^=!:${}()|[\]\/\\])/g, '\\$1');
+		return String(s).replace(/([.*+?\^=!:${}()|\[\]\\])/g, '\\$1');
 	}
 
 	function exposed() {
@@ -28,11 +26,11 @@ window.findAndReplaceDOMText = (function() {
 		return deprecated.apply(null, arguments) || findAndReplaceDOMText.apply(null, arguments);
 	}
 
-	function deprecated(regex, node, replacement, captureGroup, elFilter) {
+	deprecated = function deprecated(regex, node, replacement, captureGroup, elFilter) {
 		if ((node && !node.nodeType) && arguments.length <= 2) {
 			return false;
 		}
-		var isReplacementFunction = typeof replacement == 'function';
+		var isReplacementFunction = typeof replacement === 'function';
 
 		if (isReplacementFunction) {
 			replacement = (function(original) {
@@ -54,7 +52,7 @@ window.findAndReplaceDOMText = (function() {
 
 				// Support captureGroup (a deprecated feature)
 
-				if (!m[0]) throw 'findAndReplaceDOMText cannot handle zero-length matches';
+				if (!m[0]) {throw 'findAndReplaceDOMText cannot handle zero-length matches';}
 
 				if (captureGroup > 0) {
 					var cg = m[captureGroup];
@@ -76,7 +74,7 @@ window.findAndReplaceDOMText = (function() {
 		};
 
 		return true;
-	}
+	};
 
 	/** 
 	 * findAndReplaceDOMText
@@ -91,16 +89,16 @@ window.findAndReplaceDOMText = (function() {
 	 *	process an element. (returning true = process element,
 	 *	returning false = avoid element)
 	 */
-	function findAndReplaceDOMText(node, options) {
+	findAndReplaceDOMText = function findAndReplaceDOMText(node, options) {
 		return new Finder(node, options);
-	}
+	};
 
 	exposed.Finder = Finder;
 
 	/**
 	 * Finder -- encapsulates logic to find and replace.
 	 */
-	function Finder(node, options) {
+	Finder = function Finder(node, options) {
 
 		options.portionMode = options.portionMode || PORTION_MODE_RETAIN;
 
@@ -118,7 +116,7 @@ window.findAndReplaceDOMText = (function() {
 			this.processMatches();
 		}
 
-	}
+	};
 
 	Finder.prototype = {
 
@@ -133,7 +131,7 @@ window.findAndReplaceDOMText = (function() {
 			var text = this.getAggregateText();
 			var matches = [];
 
-			regex = typeof regex === 'string' ? RegExp(escapeRegExp(regex), 'g') : regex;
+			regex = typeof regex === 'string' ? new RegExp(escapeRegExp(regex), 'g') : regex;
 
 			if (regex.global) {
 				while (match = regex.exec(text)) {
@@ -172,8 +170,6 @@ window.findAndReplaceDOMText = (function() {
 
 			var elementFilter = this.options.filterElements;
 
-			return getText(this.node);
-
 			/**
 			 * Gets aggregate text of a node without resorting
 			 * to broken innerText/textContent
@@ -190,13 +186,16 @@ window.findAndReplaceDOMText = (function() {
 
 				var txt = '';
 
-				if (node = node.firstChild) do {
-					txt += getText(node);
-				} while (node = node.nextSibling);
-
+				if (node = node.firstChild) {
+					do {
+						txt += getText(node);
+					} while (node = node.nextSibling);
+				}
 				return txt;
 
 			}
+
+			return getText(this.node);
 
 		},
 
@@ -324,7 +323,8 @@ window.findAndReplaceDOMText = (function() {
 		revert: function() {
 			// Reversion occurs backwards so as to avoid nodes subsequently
 			// replaced during the matching phase (a forward process):
-			for (var l = this.reverts.length; l--;) {
+			var l;
+			for (l = this.reverts.length; l >= 0; l--) {
 				this.reverts[l]();
 			}
 			this.reverts = [];
@@ -379,7 +379,7 @@ window.findAndReplaceDOMText = (function() {
 				wrapper = clone.firstChild;
 			}
 
-			if (typeof replacement == 'function') {
+			if (typeof replacement === 'function') {
 				replacement = replacement(portion, match, matchIndex);
 				if (replacement && replacement.nodeType) {
 					return replacement;
@@ -387,7 +387,7 @@ window.findAndReplaceDOMText = (function() {
 				return doc.createTextNode(String(replacement));
 			}
 
-			var el = typeof wrapper == 'string' ? doc.createElement(wrapper) : wrapper;
+			var el = typeof wrapper === 'string' ? doc.createElement(wrapper) : wrapper;
 
 			replacement = doc.createTextNode(
 				this.prepareReplacementString(
@@ -454,62 +454,62 @@ window.findAndReplaceDOMText = (function() {
 
 				return newNode;
 
-			} else {
-				// Replace matchStartNode -> [innerMatchNodes...] -> matchEndNode (in that order)
-
-
-				preceedingTextNode = doc.createTextNode(
-					matchStartNode.data.substring(0, startPortion.indexInNode)
-				);
-
-				followingTextNode = doc.createTextNode(
-					matchEndNode.data.substring(endPortion.endIndexInNode)
-				);
-
-				var firstNode = this.getPortionReplacementNode(
-					startPortion,
-					match
-				);
-
-				var innerNodes = [];
-
-				for (var i = 0, l = innerPortions.length; i < l; ++i) {
-					var portion = innerPortions[i];
-					var innerNode = this.getPortionReplacementNode(
-						portion,
-						match
-					);
-					portion.node.parentNode.replaceChild(innerNode, portion.node);
-					this.reverts.push((function(portion, innerNode) {
-						return function() {
-							innerNode.parentNode.replaceChild(portion.node, innerNode);
-						};
-					}(portion, innerNode)));
-					innerNodes.push(innerNode);
-				}
-
-				var lastNode = this.getPortionReplacementNode(
-					endPortion,
-					match
-				);
-
-				matchStartNode.parentNode.insertBefore(preceedingTextNode, matchStartNode);
-				matchStartNode.parentNode.insertBefore(firstNode, matchStartNode);
-				matchStartNode.parentNode.removeChild(matchStartNode);
-
-				matchEndNode.parentNode.insertBefore(lastNode, matchEndNode);
-				matchEndNode.parentNode.insertBefore(followingTextNode, matchEndNode);
-				matchEndNode.parentNode.removeChild(matchEndNode);
-
-				this.reverts.push(function() {
-					preceedingTextNode.parentNode.removeChild(preceedingTextNode);
-					firstNode.parentNode.replaceChild(matchStartNode, firstNode);
-					followingTextNode.parentNode.removeChild(followingTextNode);
-					lastNode.parentNode.replaceChild(matchEndNode, lastNode);
-				});
-
-				return lastNode;
 			}
+			// Replace matchStartNode -> [innerMatchNodes...] -> matchEndNode (in that order)
+
+
+			preceedingTextNode = doc.createTextNode(
+				matchStartNode.data.substring(0, startPortion.indexInNode)
+			);
+
+			followingTextNode = doc.createTextNode(
+				matchEndNode.data.substring(endPortion.endIndexInNode)
+			);
+
+			var firstNode = this.getPortionReplacementNode(
+				startPortion,
+				match
+			);
+
+			var innerNodes = [];
+
+			var i, l, portion, innerNode;
+			for (i = 0, l = innerPortions.length; i < l; ++i) {
+				portion = innerPortions[i];
+				innerNode = this.getPortionReplacementNode(
+					portion,
+					match
+				);
+				portion.node.parentNode.replaceChild(innerNode, portion.node);
+				this.reverts.push((function(portion, innerNode) {
+					return function() {
+						innerNode.parentNode.replaceChild(portion.node, innerNode);
+					};
+				}(portion, innerNode)));
+				innerNodes.push(innerNode);
+			}
+
+			var lastNode = this.getPortionReplacementNode(
+				endPortion,
+				match
+			);
+
+			matchStartNode.parentNode.insertBefore(preceedingTextNode, matchStartNode);
+			matchStartNode.parentNode.insertBefore(firstNode, matchStartNode);
+			matchStartNode.parentNode.removeChild(matchStartNode);
+
+			matchEndNode.parentNode.insertBefore(lastNode, matchEndNode);
+			matchEndNode.parentNode.insertBefore(followingTextNode, matchEndNode);
+			matchEndNode.parentNode.removeChild(matchEndNode);
+
+			this.reverts.push(function() {
+				preceedingTextNode.parentNode.removeChild(preceedingTextNode);
+				firstNode.parentNode.replaceChild(matchStartNode, firstNode);
+				followingTextNode.parentNode.removeChild(followingTextNode);
+				lastNode.parentNode.replaceChild(matchEndNode, lastNode);
+			});
+
+			return lastNode;
 		}
 
 	};
